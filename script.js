@@ -43,6 +43,12 @@ async function handleImageFile(fileInputId, urlInputId, statusId){
   try{
     const url = await uploadImage(file, $(statusId));
     $(urlInputId).value = url;
+    const previewId = urlInputId === "editImage" ? "editImagePreview" : "profileImagePreview";
+    const preview = $(previewId);
+    if(preview){
+      preview.src = url;
+      preview.classList.remove("hidden");
+    }
   }catch(error){
     console.error(error);
     alert(error.message || "Image upload failed.");
@@ -136,7 +142,10 @@ function imageStyle(url){
   return `background-image:url("${String(url).replace(/"/g,'\\"')}")`;
 }
 function imageHtml(url, cls="card-image"){
-  return url ? `<div class="${cls}" style="${imageStyle(url)}"></div>` : `<div class="${cls} no-image">GAME</div>`;
+  if(!url) return `<div class="${cls} no-image">GAME</div>`;
+  const safeUrl = esc(url);
+  return `<img class="${cls}" src="${safeUrl}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`+
+         `<div class="${cls} no-image image-fallback" style="display:none">IMAGE UNAVAILABLE</div>`;
 }
 
 function render(){
@@ -315,6 +324,8 @@ function openEditor(type,id,gameId,parentSubId){
 
   $("editImageFile").value="";
   $("editImageStatus").textContent="Upload an image from your PC or use a public image URL.";
+  $("editImagePreview").classList.add("hidden");
+  $("editImagePreview").removeAttribute("src");
 
   if(type==="game" && id){
     const g=data.find(x=>x.id===id);
@@ -334,6 +345,11 @@ function openEditor(type,id,gameId,parentSubId){
     $("editName").value=""; $("editImage").value=""; $("editDescription").value="";
     if(type==="sub") $("editParentGame").value=gameId || data[0]?.id || "";
     if(type==="nested") $("editParentSub").value=`${gameId}::${parentSubId}`;
+  }
+  const currentImage = $("editImage").value.trim();
+  if(currentImage){
+    $("editImagePreview").src=currentImage;
+    $("editImagePreview").classList.remove("hidden");
   }
   showModal("editorModal");
 }
