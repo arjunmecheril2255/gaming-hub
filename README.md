@@ -1,4 +1,4 @@
-# Arjun's Gaming Hub
+# Kuttan's Gaming Hub
 
 ## Included
 - VALORANT
