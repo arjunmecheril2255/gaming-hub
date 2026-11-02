@@ -14,3 +14,6 @@
 .profile-avatar{background-size:cover;background-position:center center}
 
 .image-preview{display:block;width:100%;max-height:220px;object-fit:cover;object-position:center;border-radius:14px;margin-top:10px;border:1px solid #303542;background:#0b0d12}.image-fallback{width:100%;aspect-ratio:16/9;height:auto;min-height:0}
+
+/* Flexible subdivision display */
+.sub-card.text-mode{min-height:110px;display:flex;align-items:center}.sub-card.text-mode .sub-text-icon{height:auto;min-height:110px;width:78px;display:flex;align-items:center;justify-content:center;background:#202532;color:#8f98aa;font-size:11px;font-weight:800;letter-spacing:1px;flex:0 0 78px}.sub-card.text-mode>div:last-child{flex:1}.sub-card.image-mode img,.sub-card.image-mode .sub-placeholder{aspect-ratio:16/9;height:auto;display:block}.nested-label{font-size:11px}.image-preview{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:14px;margin-top:10px;border:1px solid #303542}.modal-card .tiny{margin:7px 0 0}

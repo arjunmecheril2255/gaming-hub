@@ -99,7 +99,7 @@ async function loadSiteData(){
   if(error){ console.error(error); return; }
   if(row?.data){
     data = Array.isArray(row.data.games) ? row.data.games : clone(DEFAULT_DATA);
-    data.forEach(g => (g.subdivisions || []).forEach(sub => { if(!Array.isArray(sub.subdivisions)) sub.subdivisions=[]; }));
+    normalizeTree(data);
     profile = {...DEFAULT_PROFILE, ...(row.data.profile || {})};
   }
 }
@@ -148,7 +148,41 @@ function imageHtml(url, cls="card-image"){
          `<div class="${cls} no-image image-fallback" style="display:none">IMAGE UNAVAILABLE</div>`;
 }
 
+function normalizeNode(node){
+  if(!node || typeof node !== "object") return;
+  if(!Array.isArray(node.subdivisions)) node.subdivisions=[];
+  node.display = node.display === "image" || node.image ? "image" : "text";
+  node.subdivisions.forEach(normalizeNode);
+}
+function normalizeTree(list){ (list || []).forEach(normalizeNode); }
+function findNodeAndParent(list,id,parent=null){
+  for(const node of (list||[])){
+    if(node.id===id) return {node,parent};
+    const found=findNodeAndParent(node.subdivisions,id,node);
+    if(found) return found;
+  }
+  return null;
+}
+function allSubOptions(list,gameId,prefix="",out=[]){
+  for(const node of (list||[])){
+    const label = prefix ? `${prefix} → ${node.name}` : node.name;
+    out.push({value:`${gameId}::${node.id}`,label});
+    allSubOptions(node.subdivisions,gameId,label,out);
+  }
+  return out;
+}
+function displayNodeHtml(node, onclick){
+  const imageMode=node.display==="image";
+  const visual=imageMode && node.image
+    ? `<img src="${esc(node.image)}" alt="" loading="lazy">`
+    : imageMode ? `<div class="sub-placeholder no-image">IMAGE</div>` : `<div class="sub-text-icon">TEXT</div>`;
+  return `<div class="sub-card ${imageMode?'image-mode':'text-mode'}" ${onclick ? `onclick="${onclick}"` : ""}>${visual}<div><strong>${esc(node.name)}</strong>${node.description?`<span>${esc(node.description)}</span>`:""}${node.subdivisions.length?`<small class="nested-count">${node.subdivisions.length} child${node.subdivisions.length===1?'':'ren'}</small>`:""}</div></div>`;
+}
+function renderSubCards(gameId,nodes){
+  return (nodes||[]).map(node=>displayNodeHtml(node,`openNode('${gameId}','${node.id}')`)).join("") || "<p class='muted'>No subdivisions yet.</p>";
+}
 function render(){
+  normalizeTree(data);
   document.body.classList.toggle("admin-mode", admin);
   $("gamesGrid").innerHTML = data.map(game => `
     <article class="game-card" onclick="openGame('${game.id}')">
@@ -166,105 +200,64 @@ function render(){
 }
 
 function openGame(id){
-  const game = data.find(x=>x.id===id);
-  if(!game) return;
-  $("gameModalTitle").textContent = game.name;
-  $("gameDetails").innerHTML = `
-    ${imageHtml(game.image,"details-image")}
-    <p class="details-description">${esc(game.description)}</p>
+  const game=data.find(x=>x.id===id); if(!game) return;
+  $("gameModalTitle").textContent=game.name;
+  $("gameDetails").innerHTML=`
+    ${game.image ? imageHtml(game.image,"details-image") : ""}
+    <p class="details-description">${esc(game.description || "")}</p>
     <h3>Subdivisions</h3>
-    <div class="sub-grid">
-      ${game.subdivisions.map(sub => `
-        <div class="sub-card" onclick="openSub('${game.id}','${sub.id}')">
-          ${sub.image ? `<img src="${esc(sub.image)}" alt="">` : `<div class="sub-placeholder no-image">SUB</div>`}
-          <div><strong>${esc(sub.name)}</strong><span>${esc(sub.description || "")}</span>${(sub.subdivisions||[]).length ? `<small class="nested-count">${sub.subdivisions.length} sub-level${sub.subdivisions.length===1?"":"s"}</small>` : ""}</div>
-        </div>
-      `).join("") || "<p class='muted'>No subdivisions yet.</p>"}
-    </div>
-  `;
+    <div class="sub-grid">${renderSubCards(game.id,game.subdivisions)}</div>`;
   $("gameModal").classList.remove("hidden");
 }
 
-function openSub(gameId, subId){
-  const game = data.find(x=>x.id===gameId);
-  const sub = game?.subdivisions.find(x=>x.id===subId);
-  if(!sub) return;
-  const children = Array.isArray(sub.subdivisions) ? sub.subdivisions : [];
-  $("gameModalTitle").textContent = `${game.name} · ${sub.name}`;
-  $("gameDetails").innerHTML = `
-    ${imageHtml(sub.image,"details-image")}
-    <h3>${esc(sub.name)}</h3>
-    <p class="details-description">${esc(sub.description || "No description added yet.")}</p>
+function openNode(gameId,nodeId){
+  const game=data.find(x=>x.id===gameId); const found=findNodeAndParent(game?.subdivisions,nodeId);
+  if(!game || !found) return;
+  const node=found.node;
+  $("gameModalTitle").textContent=`${game.name} · ${node.name}`;
+  const parentBack=found.parent ? `<button class="secondary-btn" onclick="openNode('${game.id}','${found.parent.id}')">← Back to ${esc(found.parent.name)}</button>` : `<button class="secondary-btn" onclick="openGame('${game.id}')">← Back to ${esc(game.name)}</button>`;
+  $("gameDetails").innerHTML=`
+    ${node.display==="image" && node.image ? imageHtml(node.image,"details-image") : ""}
+    <h3>${esc(node.name)}</h3>
+    ${node.description?`<p class="details-description">${esc(node.description)}</p>`:""}
     <h3>Subdivisions</h3>
-    <div class="sub-grid">
-      ${children.map(child => `
-        <div class="sub-card" onclick="openNestedSub('${game.id}','${sub.id}','${child.id}')">
-          ${child.image ? `<img src="${esc(child.image)}" alt="">` : `<div class="sub-placeholder no-image">SUB</div>`}
-          <div><strong>${esc(child.name)}</strong><span>${esc(child.description || "")}</span></div>
-        </div>
-      `).join("") || "<p class='muted'>No subdivisions yet.</p>"}
-    </div>
-    <button class="secondary-btn" onclick="openGame('${game.id}')">← Back to ${esc(game.name)}</button>
-  `;
+    <div class="sub-grid">${renderSubCards(game.id,node.subdivisions)}</div>
+    ${parentBack}`;
 }
 
-function openNestedSub(gameId, subId, childId){
-  const game = data.find(x=>x.id===gameId);
-  const sub = game?.subdivisions.find(x=>x.id===subId);
-  const child = sub?.subdivisions?.find(x=>x.id===childId);
-  if(!child) return;
-  $("gameModalTitle").textContent = `${game.name} · ${sub.name} · ${child.name}`;
-  $("gameDetails").innerHTML = `
-    ${imageHtml(child.image,"details-image")}
-    <h3>${esc(child.name)}</h3>
-    <p class="details-description">${esc(child.description || "No description added yet.")}</p>
-    <button class="secondary-btn" onclick="openSub('${game.id}','${sub.id}')">← Back to ${esc(sub.name)}</button>
-  `;
+function renderAdminTree(gameId,nodes,depth=0){
+  return (nodes||[]).map(node=>`
+    <div class="sub-row ${depth?'child-row':''}" style="margin-left:${depth*18}px">
+      <div>
+        <span>${depth?'↳ ':''}${esc(node.name)}</span>
+        <span class="muted nested-label">${node.display==='image'?'IMAGE':'TEXT'} · ${node.subdivisions.length} child${node.subdivisions.length===1?'':'ren'}</span>
+      </div>
+      <div class="admin-buttons">
+        <button class="mini-btn" onclick="editNode('${gameId}','${node.id}')">Edit</button>
+        <button class="mini-btn" onclick="addChildSub('${gameId}','${node.id}')">+ Subdivision</button>
+        <button class="mini-btn delete" onclick="deleteNode('${gameId}','${node.id}')">Delete</button>
+      </div>
+    </div>${renderAdminTree(gameId,node.subdivisions,depth+1)}`).join("");
 }
-
 function renderAdminList(){
   if(!admin){ $("adminList").innerHTML=""; return; }
-  $("adminList").innerHTML = data.map(game => `
+  $("adminList").innerHTML=data.map(game=>`
     <div class="admin-item">
       <div class="admin-item-head">
-        <div><h3>${esc(game.name)}</h3><span class="muted">${game.subdivisions.length} subdivisions</span></div>
+        <div><h3>${esc(game.name)}</h3><span class="muted">${game.subdivisions.length} top-level subdivisions</span></div>
         <div class="admin-buttons">
           <button class="mini-btn" onclick="editGame('${game.id}')">Edit</button>
           <button class="mini-btn" onclick="addSub('${game.id}')">+ Subdivision</button>
           <button class="mini-btn delete" onclick="deleteGame('${game.id}')">Delete</button>
         </div>
       </div>
-      <div class="sub-admin">
-        ${game.subdivisions.map(sub=>`
-          <div class="sub-row nested-parent-row">
-            <div>
-              <span>${esc(sub.name)}</span>
-              <span class="muted nested-label">${(sub.subdivisions||[]).length} sub-level${(sub.subdivisions||[]).length===1?"":"s"}</span>
-            </div>
-            <div class="admin-buttons">
-              <button class="mini-btn" onclick="editSub('${game.id}','${sub.id}')">Edit</button>
-              <button class="mini-btn" onclick="addNestedSub('${game.id}','${sub.id}')">+ Subdivision</button>
-              <button class="mini-btn delete" onclick="deleteSub('${game.id}','${sub.id}')">Delete</button>
-            </div>
-          </div>
-          <div class="nested-admin">
-            ${(sub.subdivisions||[]).map(child=>`
-              <div class="sub-row child-row">
-                <span>↳ ${esc(child.name)}</span>
-                <div class="admin-buttons">
-                  <button class="mini-btn" onclick="editNestedSub('${game.id}','${sub.id}','${child.id}')">Edit</button>
-                  <button class="mini-btn delete" onclick="deleteNestedSub('${game.id}','${sub.id}','${child.id}')">Delete</button>
-                </div>
-              </div>`).join("")}
-          </div>
-        `).join("") || "<span class='muted'>No subdivisions</span>"}
-      </div>
-    </div>
-  `).join("");
+      <div class="sub-admin">${renderAdminTree(game.id,game.subdivisions)||"<span class='muted'>No subdivisions</span>"}</div>
+    </div>`).join("");
 }
 
 function showModal(id){ $(id).classList.remove("hidden"); }
 function hideModal(id){ $(id).classList.add("hidden"); }
+
 
 $("adminBtn").onclick = () => { showModal("adminModal"); updateAdminUI(); };
 $("addGameTop").onclick = () => addGame();
@@ -306,107 +299,106 @@ $("logoutBtn").onclick = async () => {
 
 function addGame(){ if(admin) openEditor("game",null,null); }
 function editGame(id){ if(admin) openEditor("game",id,null); }
-function addSub(gameId){ if(admin) openEditor("sub",null,gameId); }
-function editSub(gameId,subId){ if(admin) openEditor("sub",subId,gameId); }
-function addNestedSub(gameId,subId){ if(admin) openEditor("nested",null,gameId,subId); }
-function editNestedSub(gameId,subId,childId){ if(admin) openEditor("nested",childId,gameId,subId); }
+function addSub(gameId){ if(admin) openEditor("sub",null,gameId,null); }
+function editNode(gameId,nodeId){ if(admin) openEditor("sub",nodeId,gameId,null); }
+function addChildSub(gameId,parentId){ if(admin) openEditor("sub",null,gameId,parentId); }
 
 function openEditor(type,id,gameId,parentSubId){
   $("editType").value=type;
-  $("editGameId").value=type==="game" ? (id||"") : (gameId||"");
-  $("editSubId").value=(type==="sub" || type==="nested") ? (id||"") : "";
-  const title = type==="game" ? (id ? "Edit Game" : "Add Game") : type==="sub" ? (id ? "Edit Subdivision" : "Add Subdivision") : (id ? "Edit Subdivision" : "Add Subdivision");
-  $("editorTitle").textContent = title;
+  $("editGameId").value=type==="game"?(id||""):(gameId||"");
+  $("editSubId").value=type==="sub"?(id||""):"";
+  $("editorTitle").textContent=type==="game"?(id?"Edit Game":"Add Game"):(id?"Edit Subdivision":"Add Subdivision");
   $("parentGameField").classList.toggle("hidden",type==="game");
-  $("parentSubField").classList.toggle("hidden",type!=="nested");
-  $("editParentGame").innerHTML = data.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join("");
-  $("editParentSub").innerHTML = data.flatMap(g=>(g.subdivisions||[]).map(sub=>`<option value="${g.id}::${sub.id}">${esc(g.name)} → ${esc(sub.name)}</option>`)).join("");
-
+  $("parentSubField").classList.toggle("hidden",type==="game");
+  $("displayTypeField").classList.toggle("hidden",type==="game");
+  $("editParentGame").innerHTML=data.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join("");
+  const options=data.flatMap(g=>allSubOptions(g.subdivisions,g.id).map(o=>({gameId:g.id,...o})));
+  $("editParentSub").innerHTML=`<option value="">Top-level subdivision</option>`+options.map(o=>`<option value="${o.value}">${esc(o.label)}</option>`).join("");
   $("editImageFile").value="";
   $("editImageStatus").textContent="Upload an image from your PC or use a public image URL.";
-  $("editImagePreview").classList.add("hidden");
-  $("editImagePreview").removeAttribute("src");
+  $("editImagePreview").classList.add("hidden"); $("editImagePreview").removeAttribute("src");
 
-  if(type==="game" && id){
-    const g=data.find(x=>x.id===id);
-    $("editName").value=g.name; $("editImage").value=g.image||""; $("editDescription").value=g.description||"";
-  }else if(type==="sub" && id){
-    const g=data.find(x=>x.id===gameId);
-    const s=g?.subdivisions.find(x=>x.id===id);
-    $("editName").value=s?.name||""; $("editImage").value=s?.image||""; $("editDescription").value=s?.description||"";
-    $("editParentGame").value=gameId;
-  }else if(type==="nested" && id){
-    const g=data.find(x=>x.id===gameId);
-    const parent=g?.subdivisions.find(x=>x.id===parentSubId);
-    const s=parent?.subdivisions?.find(x=>x.id===id);
-    $("editName").value=s?.name||""; $("editImage").value=s?.image||""; $("editDescription").value=s?.description||"";
-    $("editParentSub").value=`${gameId}::${parentSubId}`;
-  }else{
-    $("editName").value=""; $("editImage").value=""; $("editDescription").value="";
-    if(type==="sub") $("editParentGame").value=gameId || data[0]?.id || "";
-    if(type==="nested") $("editParentSub").value=`${gameId}::${parentSubId}`;
+  let current=null;
+  if(type==="game" && id) current=data.find(x=>x.id===id);
+  if(type==="sub" && id) current=findNodeAndParent(data.flatMap(g=>g.subdivisions),id)?.node;
+  $("editName").value=current?.name||"";
+  $("editImage").value=current?.image||"";
+  $("editDescription").value=current?.description||"";
+  $("editDisplayType").value=current?.display || (current?.image?"image":"text");
+  if(type!=="game"){
+    const owner=gameId || data[0]?.id || "";
+    $("editParentGame").value=owner;
+    if(parentSubId){ $("editParentSub").value=`${owner}::${parentSubId}`; }
+    else if(current){
+      const found=findNodeAndParent(data.find(g=>g.id===owner)?.subdivisions,current.id);
+      $("editParentSub").value=found?.parent?`${owner}::${found.parent.id}`:"";
+    } else $("editParentSub").value="";
   }
-  const currentImage = $("editImage").value.trim();
-  if(currentImage){
-    $("editImagePreview").src=currentImage;
-    $("editImagePreview").classList.remove("hidden");
-  }
+  updateDisplayTypeUI();
+  const currentImage=$("editImage").value.trim();
+  if(currentImage){ $("editImagePreview").src=currentImage; $("editImagePreview").classList.remove("hidden"); }
   showModal("editorModal");
 }
 
-$("editorForm").onsubmit = async e => {
-  e.preventDefault();
-  if(!admin) return;
+function updateDisplayTypeUI(){
+  const isImage=$("editDisplayType")?.value==="image";
+  $("imageFieldGroup")?.classList.toggle("hidden",!isImage);
+  if(!isImage){ $("editImage").value=""; $("editImageFile").value=""; $("editImagePreview")?.classList.add("hidden"); }
+}
+$("editDisplayType").onchange=updateDisplayTypeUI;
 
+function removeNodeById(list,id){
+  for(let i=0;i<list.length;i++){
+    if(list[i].id===id) return list.splice(i,1)[0];
+    const found=removeNodeById(list[i].subdivisions||[],id);
+    if(found) return found;
+  }
+  return null;
+}
+
+$("editorForm").onsubmit=async e=>{
+  e.preventDefault(); if(!admin) return;
   const type=$("editType").value;
   const name=$("editName").value.trim();
-  const image=$("editImage").value.trim();
   const description=$("editDescription").value.trim();
+  const display=type==="game"?"image":$("editDisplayType").value;
+  const image=display==="image" ? $("editImage").value.trim() : "";
   if(!name) return;
 
   if(type==="game"){
-    const id=$("editGameId").value;
-    if(id){
-      const g=data.find(x=>x.id===id);
-      if(g){g.name=name;g.image=image;g.description=description;}
-    }else{
-      data.push({id:uid("game"),name,image,description,subdivisions:[]});
-    }
-  }else if(type==="sub"){
-    const parent=$("editParentGame").value;
-    const subId=$("editSubId").value;
+    const id=$("editGameId").value; const g=id?data.find(x=>x.id===id):null;
+    if(g){g.name=name;g.image=image;g.description=description;}
+    else data.push({id:uid("game"),name,image,description,subdivisions:[]});
+  }else{
+    const parentGameId=$("editParentGame").value;
+    const parentPath=$("editParentSub").value;
+    const id=$("editSubId").value;
+    const game=data.find(g=>g.id===parentGameId); if(!game) return;
     let found=null;
-    for(const g of data){
-      const idx=g.subdivisions.findIndex(s=>s.id===subId);
-      if(idx>=0){found=g.subdivisions.splice(idx,1)[0];break;}
-    }
-    const target=data.find(g=>g.id===parent);
-    if(target){
-      if(found){found.name=name;found.image=image;found.description=description;if(!Array.isArray(found.subdivisions))found.subdivisions=[];target.subdivisions.push(found);}
-      else target.subdivisions.push({id:uid("sub"),name,image,description,subdivisions:[]});
-    }
-  }else if(type==="nested"){
-    const [parentGameId,parentSubId]=$("editParentSub").value.split("::");
-    const childId=$("editSubId").value;
-    let found=null;
-    for(const g of data){
-      for(const sub of (g.subdivisions||[])){
-        const idx=(sub.subdivisions||[]).findIndex(x=>x.id===childId);
-        if(idx>=0){found=sub.subdivisions.splice(idx,1)[0];break;}
-      }
-      if(found) break;
-    }
-    const parentGame=data.find(g=>g.id===parentGameId);
-    const parentSub=parentGame?.subdivisions.find(s=>s.id===parentSubId);
-    if(parentSub){
-      if(!Array.isArray(parentSub.subdivisions)) parentSub.subdivisions=[];
-      if(found){found.name=name;found.image=image;found.description=description;parentSub.subdivisions.push(found);}
-      else parentSub.subdivisions.push({id:uid("sub2"),name,image,description,subdivisions:[]});
-    }
+    if(id) found=removeNodeById(game.subdivisions,id);
+    const node=found || {id:uid("sub"),name:"",image:"",description:"",display:"text",subdivisions:[]};
+    node.name=name; node.image=image; node.description=description; node.display=display;
+    if(parentPath){
+      const [,parentId]=parentPath.split("::");
+      const parent=findNodeAndParent(game.subdivisions,parentId)?.node;
+      if(!parent) return;
+      if(!Array.isArray(parent.subdivisions)) parent.subdivisions=[];
+      parent.subdivisions.push(node);
+    }else game.subdivisions.push(node);
   }
-
+  normalizeTree(data);
   if(await saveSiteData()){ hideModal("editorModal"); updateAdminUI(); }
 };
+
+async function deleteNode(gameId,nodeId){
+  if(!admin) return;
+  const game=data.find(g=>g.id===gameId); const found=findNodeAndParent(game?.subdivisions,nodeId);
+  if(found?.node && confirm(`Delete "${found.node.name}" and all its children?`)){
+    if(found.parent) found.parent.subdivisions=found.parent.subdivisions.filter(x=>x.id!==nodeId);
+    else game.subdivisions=game.subdivisions.filter(x=>x.id!==nodeId);
+    if(await saveSiteData()) updateAdminUI();
+  }
+}
 
 async function deleteGame(id){
   if(!admin) return;
