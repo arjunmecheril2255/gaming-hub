@@ -1,50 +1,67 @@
-# Kuttan's Gaming Hub
+# Kuttan's Gaming Hub — Secure Version
 
-## Included
-- VALORANT
-- GTA V — FiveM
-  - Characters
-  - Gang RP
-  - PD RP
-  - Citizen RP
-- GTA V
-- Rounded image cards
-- Add/edit/delete games
-- Add/edit/delete subdivisions
-- Export/import JSON data
-- Responsive mobile/desktop design
+This version uses Supabase Auth + Row Level Security instead of the old hardcoded `admin123` password and browser-only localStorage.
 
-## Test
-Open `index.html` in a browser.
+## One-time Supabase step
 
-## Admin
-Click **Admin**.
-Demo password: `admin123`
+Because the website uses one fixed row (`id = 1`), insert the initial content once in Supabase SQL Editor:
 
-Change the password inside `script.js` before publishing:
-if($("adminPassword").value === "admin123")
+```sql
+insert into public.site_data (id, data)
+values (
+  1,
+  '{
+    "profile": {
+      "name": "Kuttan PP",
+      "image": "",
+      "bio": "Gaming • FiveM RP • VALORANT",
+      "instagram": "",
+      "youtube": ""
+    },
+    "games": [
+      {
+        "id": "valorant",
+        "name": "VALORANT",
+        "image": "",
+        "description": "Competitive tactical shooter.",
+        "subdivisions": [
+          {"id": "ranked", "name": "Ranked", "image": "", "description": "Competitive ranked gameplay."},
+          {"id": "esports", "name": "Esports", "image": "", "description": "Teams, tournaments and competitive play."}
+        ]
+      },
+      {
+        "id": "fivem",
+        "name": "GTA V — FiveM",
+        "image": "",
+        "description": "Roleplay, characters and custom servers.",
+        "subdivisions": [
+          {"id": "characters", "name": "Characters", "image": "", "description": "My FiveM characters and profiles."},
+          {"id": "gang-rp", "name": "Gang RP", "image": "", "description": "Gang roleplay and stories."},
+          {"id": "pd-rp", "name": "PD RP", "image": "", "description": "Police Department roleplay."},
+          {"id": "citizen-rp", "name": "Citizen RP", "image": "", "description": "Citizen roleplay and everyday stories."}
+        ]
+      },
+      {
+        "id": "gta-v",
+        "name": "GTA V",
+        "image": "",
+        "description": "Grand Theft Auto V.",
+        "subdivisions": [
+          {"id": "story", "name": "Story Mode", "image": "", "description": "Story mode gameplay."},
+          {"id": "online", "name": "GTA Online", "image": "", "description": "Online gameplay."}
+        ]
+      }
+    ]
+  }'::jsonb
+)
+on conflict (id) do nothing;
+```
 
-## Important
-This version stores edits in browser `localStorage`. That means it is excellent for testing and personal use, but edits do NOT automatically sync to every visitor.
+## Security
+- Supabase Auth handles the admin email/password.
+- RLS allows public reading but only your authenticated UID can update.
+- The browser contains only a publishable key, which is designed to be public when RLS is configured correctly.
+- Never put a `sb_secret_...` key in this website.
 
-For a real public website where you can log in from your phone and change content for everyone, connect the admin panel to a backend such as Supabase or Firebase.
-
-## Publish free with GitHub Pages
-1. Create a GitHub repository.
-2. Upload `index.html`, `style.css`, and `script.js`.
-3. Repository Settings → Pages.
-4. Select Deploy from branch → `main` → `/root`.
-5. GitHub will give you a public URL.
-
-
-
-## Profile section
-The site now has a creator profile at the top with:
-- OG username: Kuttan PP
-- Profile photo URL
-- Bio
-- Instagram link
-- YouTube link
-- Admin-only Edit Profile button
-
-You can change these from Admin → Edit Profile.
+## Deploy
+Upload `index.html`, `style.css`, `script.js`, and this README to your GitHub repository and enable GitHub Pages when ready.

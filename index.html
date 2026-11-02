@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Arjun's Gaming Hub</title>
+  <title>Kuttan's Gaming Hub</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="topbar">
     <div>
       <div class="eyebrow">GAMING HUB</div>
-      <h1>Arjun's Games</h1>
+      <h1>Kuttan's Games</h1>
       <p class="subtitle">Games, characters, RP worlds and more.</p>
     </div>
     <button id="adminBtn" class="admin-btn">Admin</button>
@@ -91,11 +91,13 @@
       <p class="muted">Edit your collection from this browser.</p>
 
       <div id="loginArea">
+        <label>Email</label>
+        <input id="adminEmail" type="email" autocomplete="username" placeholder="Your admin email">
         <label>Password</label>
-        <input id="adminPassword" type="password" placeholder="Enter admin password">
+        <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Your admin password">
         <button id="loginBtn" class="primary-btn">Login</button>
         <p id="loginMsg" class="error"></p>
-        <p class="tiny">Demo password: <b>admin123</b>. Change it in <code>script.js</code> before publishing.</p>
+        <p class="tiny">Admin login is handled by Supabase Auth. Your password is never stored in this website's code.</p>
       </div>
 
       <div id="adminArea" class="hidden">
@@ -146,6 +148,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
 </body>
 </html>
