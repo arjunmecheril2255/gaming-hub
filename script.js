@@ -192,7 +192,7 @@ function updateAdminUI(){
 }
 
 $("loginBtn").onclick = () => {
-  if($("adminPassword").value === "admin123"){
+  if($("adminPassword").value === "2255Kuttan"){
     admin = true;
     sessionStorage.setItem(ADMIN_KEY,"1");
     $("loginMsg").textContent = "";
