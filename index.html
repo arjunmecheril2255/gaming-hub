@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arjun's Gaming Hub</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">GAMING HUB</div>
+      <h1>Arjun's Games</h1>
+      <p class="subtitle">Games, characters, RP worlds and more.</p>
+    </div>
+    <button id="adminBtn" class="admin-btn">Admin</button>
+  </header>
+
+  <main class="container">
+    <section class="profile-card">
+      <div id="profileAvatar" class="profile-avatar no-image">KP</div>
+      <div class="profile-info">
+        <span class="badge">CREATOR PROFILE</span>
+        <h2 id="profileName">Kuttan PP</h2>
+        <p id="profileBio">Gaming • FiveM RP • VALORANT</p>
+        <div class="social-links">
+          <a id="instagramLink" class="social-btn" href="#" target="_blank" rel="noopener">Instagram</a>
+          <a id="youtubeLink" class="social-btn" href="#" target="_blank" rel="noopener">YouTube</a>
+          <button id="editProfileTop" class="secondary-btn admin-only">Edit Profile</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="hero">
+      <div>
+        <span class="badge">MY GAME COLLECTION</span>
+        <h2>What I play</h2>
+        <p>Open a game to explore its subdivisions.</p>
+      </div>
+      <button id="addGameTop" class="primary-btn admin-only">+ Add Game</button>
+    </section>
+
+    <section id="gamesGrid" class="games-grid"></section>
+    <div id="emptyState" class="empty hidden">
+      <h3>No games yet</h3>
+      <p>Use Admin → Add Game to create your first game.</p>
+    </div>
+  </main>
+
+  <div id="gameModal" class="modal hidden">
+    <div class="modal-card">
+      <button class="close" data-close="gameModal">×</button>
+      <h2 id="gameModalTitle">Game</h2>
+      <div id="gameDetails"></div>
+    </div>
+  </div>
+
+  <div id="profileModal" class="modal hidden">
+    <div class="modal-card">
+      <button class="close" data-close="profileModal">×</button>
+      <h2>Edit Profile</h2>
+      <form id="profileForm">
+        <label>Username / OG Name</label>
+        <input id="profileNameInput" required placeholder="Kuttan PP">
+
+        <label>Profile Photo URL</label>
+        <input id="profileImageInput" placeholder="https://...">
+        <p class="tiny">Add a direct public image URL for your profile photo.</p>
+
+        <label>Bio</label>
+        <textarea id="profileBioInput" rows="3" placeholder="Gaming • FiveM RP • VALORANT"></textarea>
+
+        <label>Instagram Link</label>
+        <input id="instagramInput" placeholder="https://instagram.com/yourusername">
+
+        <label>YouTube Link</label>
+        <input id="youtubeInput" placeholder="https://youtube.com/@yourchannel">
+
+        <div class="form-actions">
+          <button type="button" class="secondary-btn" data-close="profileModal">Cancel</button>
+          <button type="submit" class="primary-btn">Save Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="adminModal" class="modal hidden">
+    <div class="modal-card admin-card">
+      <button class="close" data-close="adminModal">×</button>
+      <h2>Admin Panel</h2>
+      <p class="muted">Edit your collection from this browser.</p>
+
+      <div id="loginArea">
+        <label>Password</label>
+        <input id="adminPassword" type="password" placeholder="Enter admin password">
+        <button id="loginBtn" class="primary-btn">Login</button>
+        <p id="loginMsg" class="error"></p>
+        <p class="tiny">Demo password: <b>admin123</b>. Change it in <code>script.js</code> before publishing.</p>
+      </div>
+
+      <div id="adminArea" class="hidden">
+        <div class="admin-actions">
+          <button id="addGameBtn" class="primary-btn">+ Add Game</button>
+          <button id="exportBtn" class="secondary-btn">Export Data</button>
+          <label class="secondary-btn file-btn">
+            Import Data
+            <input id="importFile" type="file" accept=".json" hidden>
+          </label>
+          <button id="resetBtn" class="danger-btn">Reset Defaults</button>
+          <button id="logoutBtn" class="secondary-btn">Logout</button>
+        </div>
+        <div id="adminList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="editorModal" class="modal hidden">
+    <div class="modal-card">
+      <button class="close" data-close="editorModal">×</button>
+      <h2 id="editorTitle">Add Game</h2>
+      <form id="editorForm">
+        <input id="editType" type="hidden">
+        <input id="editGameId" type="hidden">
+        <input id="editSubId" type="hidden">
+
+        <label>Name</label>
+        <input id="editName" required placeholder="e.g. VALORANT">
+
+        <label>Image URL</label>
+        <input id="editImage" placeholder="https://...">
+        <p class="tiny">Use any public image URL. You can also leave it blank for a gradient placeholder.</p>
+
+        <label>Description</label>
+        <textarea id="editDescription" rows="4" placeholder="Short description"></textarea>
+
+        <div id="parentGameField" class="hidden">
+          <label>Game</label>
+          <select id="editParentGame"></select>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="secondary-btn" data-close="editorModal">Cancel</button>
+          <button type="submit" class="primary-btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
