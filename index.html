@@ -63,9 +63,11 @@
         <label>Username / OG Name</label>
         <input id="profileNameInput" required placeholder="Kuttan PP">
 
-        <label>Profile Photo URL</label>
+        <label>Profile Photo</label>
         <input id="profileImageInput" placeholder="https://...">
-        <p class="tiny">Add a direct public image URL for your profile photo.</p>
+        <label class="upload-label">Or upload from PC</label>
+        <input id="profileImageFile" type="file" accept="image/*">
+        <p id="profileImageStatus" class="tiny">Upload an image from your PC or use a public image URL.</p>
 
         <label>Bio</label>
         <textarea id="profileBioInput" rows="3" placeholder="Gaming • FiveM RP • VALORANT"></textarea>
@@ -124,13 +126,16 @@
         <input id="editType" type="hidden">
         <input id="editGameId" type="hidden">
         <input id="editSubId" type="hidden">
+        <input id="editNestedSubId" type="hidden">
 
         <label>Name</label>
         <input id="editName" required placeholder="e.g. VALORANT">
 
         <label>Image URL</label>
         <input id="editImage" placeholder="https://...">
-        <p class="tiny">Use any public image URL. You can also leave it blank for a gradient placeholder.</p>
+        <label class="upload-label">Or upload from PC</label>
+        <input id="editImageFile" type="file" accept="image/*">
+        <p id="editImageStatus" class="tiny">Upload an image from your PC or use a public image URL.</p>
 
         <label>Description</label>
         <textarea id="editDescription" rows="4" placeholder="Short description"></textarea>
@@ -138,6 +143,11 @@
         <div id="parentGameField" class="hidden">
           <label>Game</label>
           <select id="editParentGame"></select>
+        </div>
+
+        <div id="parentSubField" class="hidden">
+          <label>Parent Subdivision</label>
+          <select id="editParentSub"></select>
         </div>
 
         <div class="form-actions">

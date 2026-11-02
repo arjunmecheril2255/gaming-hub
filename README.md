@@ -65,3 +65,12 @@ on conflict (id) do nothing;
 
 ## Deploy
 Upload `index.html`, `style.css`, `script.js`, and this README to your GitHub repository and enable GitHub Pages when ready.
+
+
+## Image uploads
+The admin editor supports uploading images directly from your PC to the Supabase `images` Storage bucket.
+- Images are limited to 5 MB.
+- Uploads use the `admin/` folder.
+- The browser only uses the Supabase publishable key.
+- Keep the Supabase secret key out of the site.
+- The `images` bucket should be public because these images are intended for a public website and the site uses `getPublicUrl()`.
